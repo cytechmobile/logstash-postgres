@@ -23,7 +23,7 @@ on:
         default: ''
 
 jobs:
-  main:
+  CreateImage:
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
