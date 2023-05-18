@@ -1,32 +1,65 @@
-name: Create & Push Logstash docker image with postgres and aws-elastic output plugin
+name: Create & Push Logstash docker image with postgres jdbc
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the main branch
 on:
-  push
+  workflow_dispatch:
+    inputs:
+      LogstashVersion:
+        description: The version of logstash docker image
+        required: true
+        type: string
+        default: '8.7.0'
+      PostgresJdbcVersion:
+        description: The version of postgres jdbc
+        required: true
+        type: string
+        default: 'latest'
+      DockerTag:
+        description: The tag to use to push docker image
+        type: string
+        default: ''
 
 jobs:
   main:
     runs-on: ubuntu-latest
     steps:
-      - name: Set branch name to a variable
-        id: vars
-        run: echo ::set-output name=short_ref::${GITHUB_REF#refs/*/}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
-        uses: docker/login-action@v2 
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: env
+        run: |
+          echo "LogstashVersion=${{ github.event.inputs.LogstashVersion }}" >> $GITHUB_ENV
+          
+          PostgresJdbcVersion="${{ github.event.inputs.PostgresJdbcVersion }}"
+          if [[ "${PostgresJdbcVersion}" == "latest" ]]; then
+            # find latest postgres jdbc version
+            PostgresJdbcVersion=$(curl -s https://repo1.maven.org/maven2/org/postgresql/postgresql/maven-metadata.xml |grep 'version'|grep -v 'beta'|cut -f2 -d'>'|cut -f1 -d'<'|sort -rV|head -1)
+            echo "resolved latest postgres jdbc version as: ${PostgresJdbcVersion}"
+          fi
+          
+          echo "PostgresJdbcVersion=${PostgresJdbcVersion}" >> $GITHUB_ENV
+          DockerTag="${{ github.event.inputs.DockerTag }}"
+          if [[ -z "${DockerTag}" ]]; then
+            DockerTag="${LogstashVersion}"
+          fi
+          echo "DockerTag=${DockerTag}" >> $GITHUB_ENV
+      - name: Create Dockerfile
+        run: |
+          echo "FROM docker.elastic.co/logstash/logstash:${LogstashVersion}" > ./Dockerfile
+          echo "RUN /opt/logstash/bin/logstash-plugin install logstash-integration-jdbc" >> ./Dockerfile
+          echo "RUN mkdir /opt/logstash/vendor/jdbc" >> ./Dockerfile
+          echo "RUN curl -Lo /opt/logstash/vendor/jdbc/postgresql.jar https://jdbc.postgresql.org/download/postgresql-${PostgresJdbcVersion}.jar" >> ./Dockerfile
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v4
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: cytechmobile/logstash-postgres:${{ steps.vars.outputs.short_ref }}
+          tags: cytechmobile/logstash-postgres:${{ env.DockerTag }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
