@@ -8,11 +8,15 @@ on:
         required: true
         type: string
         default: '8.7.0'
+      # the version of the postgres jdbc jar to include in the image.
+      # If set to 'latest', then it automatically finds the latest released version and uses that
       PostgresJdbcVersion:
         description: The version of postgres jdbc
         required: true
         type: string
         default: 'latest'
+      # The tag to use when pushing the docker image to docker hub.
+      # If empty, then it uses LogstashVersion as tag
       DockerTag:
         description: The tag to use to push docker image
         type: string
