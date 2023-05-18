@@ -1,4 +1,4 @@
-name: Create & Push Logstash docker image with postgres jdbc
+name: Create docker image
 
 on:
   workflow_dispatch:
