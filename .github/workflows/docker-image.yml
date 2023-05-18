@@ -33,7 +33,8 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: env
         run: |
-          echo "LogstashVersion=${{ github.event.inputs.LogstashVersion }}" >> $GITHUB_ENV
+          LogstashVersion="${{ github.event.inputs.LogstashVersion }}"
+          echo "LogstashVersion=${LogstashVersion}" >> $GITHUB_ENV
           
           PostgresJdbcVersion="${{ github.event.inputs.PostgresJdbcVersion }}"
           if [[ "${PostgresJdbcVersion}" == "latest" ]]; then
@@ -41,8 +42,8 @@ jobs:
             PostgresJdbcVersion=$(curl -s https://repo1.maven.org/maven2/org/postgresql/postgresql/maven-metadata.xml |grep 'version'|grep -v 'beta'|cut -f2 -d'>'|cut -f1 -d'<'|sort -rV|head -1)
             echo "resolved latest postgres jdbc version as: ${PostgresJdbcVersion}"
           fi
-          
           echo "PostgresJdbcVersion=${PostgresJdbcVersion}" >> $GITHUB_ENV
+          
           DockerTag="${{ github.event.inputs.DockerTag }}"
           if [[ -z "${DockerTag}" ]]; then
             DockerTag="${LogstashVersion}"
