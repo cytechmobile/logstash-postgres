@@ -7,7 +7,7 @@ on:
         description: The version of logstash docker image
         required: true
         type: string
-        default: '8.7.0'
+        default: '9.3.3'
       # the version of the postgres jdbc jar to include in the image.
       # If set to 'latest', then it automatically finds the latest released version and uses that
       PostgresJdbcVersion:
